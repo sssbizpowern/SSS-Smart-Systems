@@ -27,8 +27,8 @@ esp32:
 # --- DYNAMIC WI-FI (CAPTIVE PORTAL) ---
 wifi:
   ap:
-    ssid: "Water Alarm Setup"
-    password: "password123"
+    ssid: "SSS_IndoorUnit"
+    password: "savewater"
 
 captive_portal:
 
@@ -51,6 +51,10 @@ globals:
   - id: flow_error_active
     type: bool
     initial_value: 'false'
+  - id: firebase_url_saved
+    type: std::string
+    restore_value: yes
+    initial_value: '"https://waiting-for-setup.firebaseio.com"'
 
 http_request:
   id: firebase_http

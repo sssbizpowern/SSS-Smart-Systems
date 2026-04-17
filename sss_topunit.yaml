@@ -5,18 +5,25 @@ esphome:
   name: ${name}
   friendly_name: "SSS_TopUnit"
   name_add_mac_suffix: true
-  on_boot:
-    priority: -100 
-    then:
-      - wait_until:
+on_boot:
+  priority: 600 # Higher priority so it runs BEFORE Wi-Fi even tries to start
+  then:
+    - lambda: |-
+        // Get the MAC and clean it immediately
+        std::string m = get_mac_address();
+        std::string c = "";
+        for(char ch : m) { 
+          if(ch != ':') c += ch; 
+        }
+        id(clean_mac) = c;
+        ESP_LOGI("SSS_INIT", "Device ID generated: %s", id(clean_mac).c_str());
+
+    # Now we handle the "Sync" part separately
+    - if:
+        condition:
           wifi.connected:
-      - delay: 5s
-      - lambda: |-
-          std::string m = get_mac_address();
-          std::string c = "";
-          for(char ch : m) { if(ch != ':') c += ch; }
-          id(clean_mac) = c;
-      - script.execute: sync_status
+        then:
+          - script.execute: sync_status
 
 esp8266:
   board: nodemcuv2

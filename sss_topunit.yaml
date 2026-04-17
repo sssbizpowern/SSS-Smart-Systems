@@ -1,9 +1,9 @@
 substitutions:
-  name: "top-unit"
+  name: "SSS"
 
 esphome:
   name: ${name}
-  friendly_name: "Top Unit Water Alarm"
+  friendly_name: "SSS_TopUnit"
   name_add_mac_suffix: true
   on_boot:
     priority: -100 

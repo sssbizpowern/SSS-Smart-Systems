@@ -1,9 +1,10 @@
 substitutions:
-  name: "wlwateralarm"
+  name: "SSS"
 
 esphome:
   name: ${name}
-  friendly_name: "Water Level Alarm"
+  friendly_name: "SSS_IndoorUnit"
+  name_add_mac_suffix: true
   libraries:
     - ArduinoJson
   on_boot:

@@ -125,10 +125,12 @@ script:
 
 # --- TIME-BASED SYNC & POLLING ---
 interval:
+  # 1. Heartbeat Sync: Forces Firebase to update every 25 seconds
   - interval: 25s
     then:
       - script.execute: sync_status
 
+  # 2. Remote Command Poller: Checks for app commands every 5 seconds
   - interval: 5s
     then:
       - http_request.get:
@@ -139,9 +141,40 @@ interval:
             then:
               - lambda: |-
                   if (body.length() < 10) return; 
+                  
                   JsonDocument doc; 
                   DeserializationError err = deserializeJson(doc, body);
-                  if (!err && !doc["motor"].isNull()) {
-                    // [Your existing motor control logic here]
+                  if (err) {
+                    ESP_LOGE("main", "JSON Deserialization failed");
+                    return;
+                  }
+
+                  // --- 1. CHECK FOR FACTORY RESET COMMAND ---
+                  if (doc.containsKey("action") && doc["action"] == "factory_reset") {
+                    ESP_LOGW("main", "FACTORY RESET COMMAND RECEIVED!");
+                    id(clear_firebase_command).execute(); // Clear Firebase first
+                    delay(500);
+                    global_preferences->reset();          // WIPE WI-FI & SETTINGS
+                    id(firebase_url_saved) = "https://waiting-for-setup.firebaseio.com";
+                    delay(1000);
+                    esp_restart();                        // REBOOT TO AP MODE
+                    return; 
+                  }
+                  
+                  // --- 2. MOTOR CONTROL LOGIC ---
+                  if (!doc["motor"].isNull()) {
+                    std::string motor = doc["motor"].as<std::string>();
+                    std::string state = doc["state"].as<std::string>();
+                    int duration = doc["duration"].as<int>(); 
+                    
+                    if (motor == "borewell") {
+                      if (state == "on") { id(run_borewell_timer).execute(duration > 0 ? duration : 60); }
+                      else if (state == "off") { id(borewell_relay)->turn_off(); }
+                    } 
+                    else if (motor == "sump") {
+                      if (state == "on") { id(run_sump_timer).execute(duration > 0 ? duration : 60); }
+                      else if (state == "off") { id(sump_relay)->turn_off(); }
+                    }
+                    
                     id(clear_firebase_command).execute();
                   }

@@ -27,7 +27,7 @@ logger:
 
 wifi:
   ap:
-    ssid: "Top Unit"
+    ssid: "SSS_TopUnit"
     password: "savewater"
 
 captive_portal:
@@ -53,6 +53,10 @@ globals:
   - id: target_esp32_mac
     type: std::string
     initial_value: '"A1B2C3D4E5F6"' # Replace with your actual Sump Unit MAC for testing
+    - id: firebase_url_saved
+    type: std::string
+    restore_value: yes
+    initial_value: '"https://waiting-for-setup.firebaseio.com"'
 
 http_request:
   id: firebase_http

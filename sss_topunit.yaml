@@ -119,10 +119,43 @@ script:
             payload += "\"level_100\":" + std::string(id(level_100).state ? "true" : "false") + ",";
             payload += "\"flow_active\":" + std::string(id(top_flow_sensor).state ? "true" : "false");
             payload += "}";
-            return payload; 
+            return payload;
 
-# --- HEARTBEAT SYNC ---
+            
+# --- TIME-BASED SYNC & POLLING ---
 interval:
+  # 1. Heartbeat Sync: Keeps the Top Unit "Alive" in Firebase
   - interval: 25s
     then:
       - script.execute: sync_status
+
+  # 2. Remote Command Poller: Listen for Reset only
+  - interval: 5s
+    then:
+      - http_request.get:
+          url: !lambda |-
+            return id(firebase_url_saved) + "/units/" + id(clean_mac) + "/command.json";
+          capture_response: true 
+          on_response:
+            then:
+              - lambda: |-
+                  if (body.length() < 10) return; 
+                  
+                  JsonDocument doc; 
+                  DeserializationError err = deserializeJson(doc, body);
+                  if (err) return;
+
+                  // --- FACTORY RESET CHECK ---
+                  if (doc.containsKey("action") && doc["action"] == "factory_reset") {
+                    ESP_LOGW("main", "TOP UNIT: FACTORY RESET TRIGGERED");
+                    
+                    // 1. Clear command from Firebase
+                    id(clear_firebase_command).execute(); 
+                    
+                    // 2. Wipe memory & Reboot
+                    delay(500);
+                    global_preferences->reset(); 
+                    id(firebase_url_saved) = "https://waiting-for-setup.firebaseio.com";
+                    delay(1000);
+                    esp_restart();
+                  }
